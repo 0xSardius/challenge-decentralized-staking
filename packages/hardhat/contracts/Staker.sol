@@ -7,8 +7,57 @@ import "./ExampleExternalContract.sol";
 contract Staker {
     ExampleExternalContract public exampleExternalContract;
 
+    uint256 public constant threshold = 1 ether;
+    uint256 public deadline = block.timestamp + 30 seconds;
+
+    // mappings
+    mapping(address => uint256) public balances;
+
+    // events
+
+    event Stake(address indexed staker, uint256 amount);
+
     constructor(address exampleExternalContractAddress) {
         exampleExternalContract = ExampleExternalContract(exampleExternalContractAddress);
+    }
+
+
+    function stake() public payable {
+        balances[msg.sender] += msg.value;
+        emit Stake(msg.sender, msg.value);
+    }
+
+
+
+    function timeLeft() public view returns (uint256) {
+        if (block.timestamp >= deadline) {
+            return 0;
+        }
+        return deadline - block.timestamp;
+    }
+
+    function execute() public {
+        require(block.timestamp >= deadline, "Deadline not reached");
+        require(address(this).balance >= threshold, "Threshold not met");
+        require(!exampleExternalContract.completed(), "Already completed");
+        
+        exampleExternalContract.complete{value: address(this).balance}();
+    }
+
+    function withdraw() public {
+        require(block.timestamp >= deadline, "Deadline not reached");
+        require(!exampleExternalContract.completed(), "Staking completed successfully - funds sent to external contract");
+        
+        uint256 balance = balances[msg.sender];
+        require(balance > 0, "No balance to withdraw");
+        
+        balances[msg.sender] = 0;
+        payable(msg.sender).transfer(balance);
+    }
+
+
+    receive() external payable {
+        stake();
     }
 
     // Collect funds in a payable `stake()` function and track individual `balances` with a mapping:
