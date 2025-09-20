@@ -9,7 +9,7 @@ contract Staker {
 
 
     uint256 public constant threshold = 1 ether;
-    uint256 public deadline = block.timestamp + 30 seconds;
+    uint256 public deadline = block.timestamp + 72 hours;
 
     modifier notCompleted() {
         require(!exampleExternalContract.completed(), "Contract already completed");
