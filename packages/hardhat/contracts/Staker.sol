@@ -7,8 +7,14 @@ import "./ExampleExternalContract.sol";
 contract Staker {
     ExampleExternalContract public exampleExternalContract;
 
+
     uint256 public constant threshold = 1 ether;
     uint256 public deadline = block.timestamp + 30 seconds;
+
+    modifier notCompleted() {
+        require(!exampleExternalContract.completed(), "Contract already completed");
+        _;
+    }
 
     // mappings
     mapping(address => uint256) public balances;
@@ -38,14 +44,15 @@ contract Staker {
 
     function execute() public {
         require(block.timestamp >= deadline, "Deadline not reached");
-        require(address(this).balance >= threshold, "Threshold not met");
         require(!exampleExternalContract.completed(), "Already completed");
         
-        exampleExternalContract.complete{value: address(this).balance}();
+        if (address(this).balance >= threshold) {
+            exampleExternalContract.complete{value: address(this).balance}();
+        }
     }
 
     function withdraw() public {
-        require(block.timestamp >= deadline, "Deadline not reached");
+        require(block.timestamp >= deadline, "Deadline not reached");   
         require(!exampleExternalContract.completed(), "Staking completed successfully - funds sent to external contract");
         
         uint256 balance = balances[msg.sender];
